@@ -56,6 +56,31 @@ $('mapUndo').addEventListener('click',undo);
 $('mapFinish').addEventListener('click',()=>{if(points.length<3)return msg('Tambahkan minimal 3 titik sebelum menyelesaikan batas.');drawMode=false;stop();draw();msg('Batas selesai. Periksa polygon dan luas, lalu simpan pengukuran.')});
 $('mapClear').addEventListener('click',()=>{stop();drawMode=false;points=[];redoStack=[];layer?.clearLayers();showSaved();stats();msg('Pengukuran dibersihkan.')});
 $('mapGps').addEventListener('click',()=>{init();if(!navigator.geolocation)return msg('GPS tidak tersedia.');if(watch!==null){stop();return}gpsMode=true;$('mapGps').textContent='Hentikan GPS';msg('GPS aktif. Posisi kamu ditandai di peta; geser peta ke sudut sawah lalu tekan Tambah titik bidik.');watch=navigator.geolocation.watchPosition(pos=>{gpsPosition=[pos.coords.latitude,pos.coords.longitude];accuracy=pos.coords.accuracy;if(gpsMarker)gpsMarker.setLatLng(gpsPosition);else gpsMarker=L.circleMarker(gpsPosition,{radius:8,color:'#fff',weight:3,fillColor:'#1685d5',fillOpacity:1}).bindTooltip('Posisi GPS').addTo(map);$('mapAccuracy').textContent='±'+fmt(accuracy)+' m';if(points.length===0&&map.getZoom()<17)map.setView(gpsPosition,19)},e=>{stop();msg('GPS gagal: '+e.message)},{enableHighAccuracy:true,maximumAge:1000,timeout:15000})});
+
+function importGeoJsonFile(file){
+ if(!file)return;
+ const reader=new FileReader();
+ reader.onload=()=>{
+  try{
+   const json=JSON.parse(String(reader.result||''));
+   let geometry=json.type==='FeatureCollection'?json.features?.find(f=>f?.geometry?.type==='Polygon'||f?.geometry?.type==='MultiPolygon')?.geometry:json.type==='Feature'?json.geometry:json;
+   let ring;
+   if(geometry?.type==='Polygon')ring=geometry.coordinates?.[0];
+   else if(geometry?.type==='MultiPolygon')ring=geometry.coordinates?.[0]?.[0];
+   if(!Array.isArray(ring)||ring.length<4)throw new Error('GeoJSON tidak berisi batas Polygon yang valid.');
+   const coords=ring.map(c=>[Number(c[1]),Number(c[0])]);
+   if(coords.some(p=>!Number.isFinite(p[0])||!Number.isFinite(p[1])||Math.abs(p[0])>90||Math.abs(p[1])>180))throw new Error('Koordinat GeoJSON tidak valid.');
+   if(coords.length>1&&dist(coords[0],coords[coords.length-1])<0.01)coords.pop();
+   if(coords.length<3)throw new Error('Polygon membutuhkan minimal 3 titik.');
+   init();stop();points=coords;redoStack=[];drawMode=false;gpsMode=false;draw();map.fitBounds(L.latLngBounds(points).pad(.15));
+   msg('GeoJSON berhasil diimpor: '+points.length+' titik · '+fmt(area(points))+' m². Pilih desa, petani, dan nama petak, lalu Simpan pengukuran.');
+  }catch(e){msg('Gagal mengimpor GeoJSON: '+e.message)}
+ };
+ reader.onerror=()=>msg('File GeoJSON tidak dapat dibaca.');
+ reader.readAsText(file);
+}
+$('mapImportGeoJson').addEventListener('click',()=> $('mapGeoJsonFile').click());
+$('mapGeoJsonFile').addEventListener('change',e=>{importGeoJsonFile(e.target.files?.[0]);e.target.value=''});
 $('mapSave').addEventListener('click',save);$('mapLocate').addEventListener('click',()=>{init();centerGps()});
 document.querySelector('.sidebar')?.addEventListener('click',e=>{if(e.target.closest('[data-nav="mapPanel"]'))setTimeout(()=>{init();map.invalidateSize()},100)});
 window.addEventListener('resize',()=>map?.invalidateSize());
