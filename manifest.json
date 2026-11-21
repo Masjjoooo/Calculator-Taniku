@@ -1,0 +1,27 @@
+{
+  "id": "/",
+  "name": "Calculator-Taniku",
+  "short_name": "Taniku",
+  "description": "Pemetaan sawah dan kalkulator biaya pengerjaan sawah",
+  "lang": "id",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "portrait-primary",
+  "background_color": "#f4f7f4",
+  "theme_color": "#10251d",
+  "icons": [
+    {
+      "src": "/icons/icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    },
+    {
+      "src": "/icons/icon-maskable.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "maskable"
+    }
+  ]
+}
