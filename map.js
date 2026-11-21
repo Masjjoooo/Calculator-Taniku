@@ -2,9 +2,6 @@
 'use strict';
 const URL='https://gevrnbqksgjlvpqjtmtl.supabase.co';
 const KEY='sb_publishable_xjMpFAk6N34RvbgpP6IrPA_J5RIFcnF';
-// Masukkan Google Maps JavaScript API key yang dibatasi ke domain aplikasi di sini.
-const GOOGLE_MAPS_API_KEY='';
-let googleMutantLayer=null,googleLoaderPromise=null;
 const db=window.supabase.createClient(URL,KEY);
 const $=id=>document.getElementById(id);
 const fmt=n=>new Intl.NumberFormat('id-ID',{maximumFractionDigits:2}).format(n);
@@ -29,7 +26,7 @@ function installMapUI(){
  .leaflet-control-attribution{font-size:9px!important}
  `;document.head.appendChild(style);
  const aim=document.createElement('div');aim.className='map-aim';aim.innerHTML='<i></i>';aim.setAttribute('aria-label','Titik bidik peta');$('fieldMap').appendChild(aim);
- const tools=document.createElement('div');tools.className='map-tools';tools.innerHTML='<select id="mapLayerChoice" aria-label="Jenis peta"><option value="satellite">Satelit Esri</option><option value="google">Google Satellite</option><option value="googlehybrid">Google Hybrid</option><option value="hybrid">Esri + nama tempat</option><option value="street">Peta jalan</option><option value="topo">Topografi</option></select><button type="button" class="secondary" id="mapGpsCenter">Pusatkan GPS</button><button type="button" class="primary" id="mapAddPoint">＋ Tambah titik bidik</button><button type="button" class="secondary" id="mapRedo">Redo</button>';
+ const tools=document.createElement('div');tools.className='map-tools';tools.innerHTML='<select id="mapLayerChoice" aria-label="Jenis peta"><option value="satellite">Satelit Esri</option><option value="hybrid">Esri + nama tempat</option><option value="street">Peta jalan</option><option value="topo">Topografi</option></select><button type="button" class="secondary" id="mapGpsCenter">Pusatkan GPS</button><button type="button" class="primary" id="mapAddPoint">＋ Tambah titik bidik</button><button type="button" class="secondary" id="mapRedo">Redo</button>';
  $('fieldMap').insertAdjacentElement('afterend',tools);
  $('mapLayerChoice').addEventListener('change',e=>setBase(e.target.value));
  $('mapGpsCenter').addEventListener('click',centerGps);
@@ -41,21 +38,13 @@ function installMapUI(){
  $('mapGps').textContent='Aktifkan GPS';
 }
 function init(){if(map)return;map=L.map('fieldMap',{zoomControl:true}).setView([-6.75,111.05],16);baseLayers.satellite=L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',{maxZoom:19,attribution:'Tiles © Esri, Maxar, Earthstar Geographics'});baseLayers.labels=L.tileLayer('https://services.arcgisonline.com/ArcGIS/rest/services/Reference/World_Boundaries_and_Places/MapServer/tile/{z}/{y}/{x}',{maxZoom:19,attribution:'Labels © Esri'});baseLayers.street=L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:19,attribution:'© OpenStreetMap contributors'});baseLayers.topo=L.tileLayer('https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png',{maxZoom:17,attribution:'© OpenTopoMap contributors'});setBase(activeBase);savedLayer=L.featureGroup().addTo(map);layer=L.featureGroup().addTo(map);showSaved();map.on('click',()=>{if(drawMode)msg('Arahkan titik bidik di tengah peta, lalu tekan Tambah titik bidik.')});installMapUI();setTimeout(()=>map.invalidateSize(),200)}
-function loadScript(src){return new Promise((resolve,reject)=>{const script=document.createElement('script');script.src=src;script.async=true;script.onload=resolve;script.onerror=()=>reject(new Error('Gagal memuat '+src));document.head.appendChild(script)})}
-async function ensureGoogleMutant(){
- if(googleMutantLayer)return googleMutantLayer;
- if(!GOOGLE_MAPS_API_KEY)return Promise.reject(new Error('Google Maps API key belum diatur. Tambahkan key yang dibatasi untuk domain Calculator-Taniku pada konstanta GOOGLE_MAPS_API_KEY di map.js.'));
- if(!googleLoaderPromise)googleLoaderPromise=(async()=>{await loadScript('https://maps.googleapis.com/maps/api/js?key='+encodeURIComponent(GOOGLE_MAPS_API_KEY)+'&v=weekly');await loadScript('https://unpkg.com/leaflet.gridlayer.googlemutant@0.16.0/Leaflet.GoogleMutant.js');if(!L.gridLayer?.googleMutant)throw new Error('Plugin Leaflet.GoogleMutant tidak berhasil dimuat.');googleMutantLayer={satellite:L.gridLayer.googleMutant({type:'satellite',maxZoom:22}),hybrid:L.gridLayer.googleMutant({type:'hybrid',maxZoom:22})};return googleMutantLayer})();
- return googleLoaderPromise;
-}
-async function setBase(name){
+function setBase(name){
  if(!map)return;
- if(name==='google'||name==='googlehybrid'){
-  try{const g=await ensureGoogleMutant();Object.values(baseLayers).forEach(x=>map.removeLayer(x));if(googleMutantLayer.satellite)map.removeLayer(googleMutantLayer.satellite);if(googleMutantLayer.hybrid)map.removeLayer(googleMutantLayer.hybrid);const selected=name==='google'?g.satellite:g.hybrid;map.addLayer(selected);activeBase=name;msg(name==='google'?'Google Satellite aktif.':'Google Hybrid aktif.');}
-  catch(e){$('mapLayerChoice').value=activeBase;msg(e.message+' Tetap menggunakan peta sebelumnya.');}
-  return;
- }
- Object.values(baseLayers).forEach(x=>map.removeLayer(x));map.addLayer(name==='hybrid'?baseLayers.satellite:baseLayers[name]);if(name==='hybrid')map.addLayer(baseLayers.labels);activeBase=name;
+ Object.values(baseLayers).forEach(x=>map.removeLayer(x));
+ map.addLayer(name==='hybrid'?baseLayers.satellite:baseLayers[name]||baseLayers.satellite);
+ if(name==='hybrid')map.addLayer(baseLayers.labels);
+ activeBase=name;
+ msg(name==='hybrid'?'Satelit dengan label aktif.':name==='satellite'?'Satelit Esri aktif.':name==='street'?'Peta jalan aktif.':'Topografi aktif.');
 }
 function populate(){const v=$('mapVillage').value,f=$('mapFarmer').value;$('mapFarmer').innerHTML='<option value="">Pilih petani</option>'+farmers.filter(x=>!v||x.village_id===v).map(x=>'<option value="'+x.id+'">'+esc(x.name)+'</option>').join('');$('mapField').innerHTML='<option value="">Buat petak baru</option>'+fields.filter(x=>(!v||x.village_id===v)&&(!f||x.farmer_id===f)).map(x=>'<option value="'+x.id+'">'+esc(x.name)+' · '+fmt(x.area_m2)+' m²</option>').join('')}
 function esc(s){return String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
@@ -63,13 +52,13 @@ async function load(){const session=await db.auth.getSession();if(!session.data.
 function showSaved(){if(!map||!savedLayer)return;savedLayer.clearLayers();fields.forEach(x=>{const coords=x.boundary_geojson?.coordinates?.[0];if(!coords||coords.length<4)return;const latlng=coords.slice(0,-1).map(c=>[c[1],c[0]]);L.polygon(latlng,{color:'#fff',weight:2,fillColor:'#7b4c55',fillOpacity:.2}).bindTooltip(esc(x.name)+' · '+fmt(x.area_m2)+' m²').addTo(savedLayer)})}
 function stop(){if(watch!==null)navigator.geolocation.clearWatch(watch);watch=null;$('mapGps').textContent='Aktifkan GPS'}
 function centerGps(){if(gpsPosition){map.setView(gpsPosition,19);msg('Peta dipusatkan ke posisi GPS. Geser peta hingga bidikan tepat pada sudut sawah.');return}if(!navigator.geolocation)return msg('GPS tidak tersedia.');navigator.geolocation.getCurrentPosition(p=>{gpsPosition=[p.coords.latitude,p.coords.longitude];accuracy=p.coords.accuracy;if(gpsMarker)gpsMarker.setLatLng(gpsPosition);else gpsMarker=L.circleMarker(gpsPosition,{radius:8,color:'#fff',weight:3,fillColor:'#1685d5',fillOpacity:1}).bindTooltip('Posisi GPS').addTo(map);$('mapAccuracy').textContent='±'+fmt(accuracy)+' m';map.setView(gpsPosition,19);msg('Lokasi GPS ditemukan. Geser peta untuk menempatkan bidikan tepat pada batas sawah.')},e=>msg('Lokasi gagal: '+e.message),{enableHighAccuracy:true,timeout:15000})}
-function addAimPoint(){if(activeBase==='google'||activeBase==='googlehybrid')return msg('Mode ukur dinonaktifkan pada citra Google. Gunakan basemap Esri untuk menggambar atau mengedit batas petak.');if(!drawMode)return;const c=map.getCenter(),p=[c.lat,c.lng];if(points.length&&dist(points[points.length-1],p)<.5)return msg('Titik terlalu dekat dengan titik sebelumnya. Geser peta sedikit.');points.push(p);redoStack=[];draw();msg('Titik '+points.length+' ditambahkan. Geser peta ke sudut berikutnya, lalu tambah titik lagi.')}
+function addAimPoint(){if(!drawMode)return;const c=map.getCenter(),p=[c.lat,c.lng];if(points.length&&dist(points[points.length-1],p)<.5)return msg('Titik terlalu dekat dengan titik sebelumnya. Geser peta sedikit.');points.push(p);redoStack=[];draw();msg('Titik '+points.length+' ditambahkan. Geser peta ke sudut berikutnya, lalu tambah titik lagi.')}
 function undo(){if(!points.length)return;redoStack.push(points.pop());draw();msg('Titik terakhir dibatalkan. Tekan Redo untuk mengembalikannya.')}
 function redo(){if(!redoStack.length)return;points.push(redoStack.pop());draw();msg('Titik dikembalikan.')}
 function loadField(){const f=fields.find(x=>x.id===$('mapField').value);if(!f)return;points=(f.boundary_geojson?.coordinates?.[0]||[]).slice(0,-1).map(c=>[c[1],c[0]]);redoStack=[];$('mapFieldName').value=f.name;draw();if(points.length)map.fitBounds(L.latLngBounds(points).pad(.2))}
-async function save(){if(activeBase==='google'||activeBase==='googlehybrid')return msg('Penyimpanan pengukuran dari citra Google dinonaktifkan. Beralih ke basemap Esri untuk menyimpan batas petak.');const village_id=$('mapVillage').value,farmer_id=$('mapFarmer').value,name=$('mapFieldName').value.trim(),id=$('mapField').value;if(!village_id||!farmer_id||!name)return msg('Pilih desa, petani, dan isi nama petak.');if(points.length<3)return msg('Batas sawah membutuhkan minimal 3 titik.');const ring=points.map(p=>[p[1],p[0]]);ring.push(ring[0]);const payload={owner_id:ownerId,village_id,farmer_id,name,area_m2:area(points),perimeter_m:perimeter(points),boundary_geojson:{type:'Polygon',coordinates:[ring]},measurement_method:gpsMode?'gps_aim':'manual_aim',measured_at:new Date().toISOString(),gps_accuracy_m:accuracy,location:villages.find(x=>x.id===village_id)?.name||null};const q=id?db.from('fields').update(payload).eq('id',id):db.from('fields').insert(payload);const {error}=await q;if(error)return msg('Gagal menyimpan: '+error.message);msg('Berhasil disimpan: '+fmt(payload.area_m2)+' m².');await load();$('mapField').value=id||'';drawMode=false;stats()}
+async function save(){const village_id=$('mapVillage').value,farmer_id=$('mapFarmer').value,name=$('mapFieldName').value.trim(),id=$('mapField').value;if(!village_id||!farmer_id||!name)return msg('Pilih desa, petani, dan isi nama petak.');if(points.length<3)return msg('Batas sawah membutuhkan minimal 3 titik.');const ring=points.map(p=>[p[1],p[0]]);ring.push(ring[0]);const payload={owner_id:ownerId,village_id,farmer_id,name,area_m2:area(points),perimeter_m:perimeter(points),boundary_geojson:{type:'Polygon',coordinates:[ring]},measurement_method:gpsMode?'gps_aim':'manual_aim',measured_at:new Date().toISOString(),gps_accuracy_m:accuracy,location:villages.find(x=>x.id===village_id)?.name||null};const q=id?db.from('fields').update(payload).eq('id',id):db.from('fields').insert(payload);const {error}=await q;if(error)return msg('Gagal menyimpan: '+error.message);msg('Berhasil disimpan: '+fmt(payload.area_m2)+' m².');await load();$('mapField').value=id||'';drawMode=false;stats()}
 $('mapVillage').addEventListener('change',populate);$('mapFarmer').addEventListener('change',populate);$('mapField').addEventListener('change',loadField);
-$('mapDraw').addEventListener('click',()=>{if(activeBase==='google'||activeBase==='googlehybrid')return msg('Citra Google hanya untuk melihat lokasi. Beralih ke basemap Esri untuk menggambar batas sawah.');init();stop();points=[];redoStack=[];gpsMode=false;drawMode=true;draw();map.setView(map.getCenter(),Math.max(map.getZoom(),18));msg('Mode bidik aktif. Geser peta hingga tanda bidik tepat di sudut pertama, lalu tekan Tambah titik bidik.')});
+$('mapDraw').addEventListener('click',()=>{init();stop();points=[];redoStack=[];gpsMode=false;drawMode=true;draw();map.setView(map.getCenter(),Math.max(map.getZoom(),18));msg('Mode bidik aktif. Geser peta hingga tanda bidik tepat di sudut pertama, lalu tekan Tambah titik bidik.')});
 $('mapUndo').addEventListener('click',undo);
 $('mapFinish').addEventListener('click',()=>{if(points.length<3)return msg('Tambahkan minimal 3 titik sebelum menyelesaikan batas.');drawMode=false;stop();draw();msg('Batas selesai. Periksa polygon dan luas, lalu simpan pengukuran.')});
 $('mapClear').addEventListener('click',()=>{stop();drawMode=false;points=[];redoStack=[];layer?.clearLayers();showSaved();stats();msg('Pengukuran dibersihkan.')});
