@@ -133,7 +133,6 @@ const db=window.supabase.createClient(SUPABASE_URL,SUPABASE_KEY);
 const $=id=>document.getElementById(id);
 const rupiah=n=>new Intl.NumberFormat('id-ID',{style:'currency',currency:'IDR',maximumFractionDigits:0}).format(n);
 const number=n=>new Intl.NumberFormat('id-ID',{maximumFractionDigits:3}).format(Number(n));
-const fmtDate=value=>{if(!value)return '—';const d=new Date(value);return Number.isNaN(d.getTime())?String(value):d.toLocaleDateString('id-ID',{day:'2-digit',month:'long',year:'numeric'})};
 let user=null,current=null,history=[],signUp=false,editingId=null;
 function setActiveSection(id){const valid=['dashboardPanel','createWorkPanel','mapPanel','masterPanel','farmersPanel','fieldsPanel','projectsPanel','calculatorPanel','historyPanel'];if(!valid.includes(id))return;document.querySelectorAll('.app-section').forEach(x=>x.classList.toggle('active',x.id===id));document.querySelectorAll('.nav-item').forEach(x=>x.classList.toggle('active',x.dataset.nav===id));try{sessionStorage.setItem('taniku_active_section',id)}catch(e){}if(id==='projectsPanel'||id==='fieldsPanel')setTimeout(()=>{initLiveFieldMaps();for(const item of liveFieldMaps.values())item.map.invalidateSize();if(id==='projectsPanel')initProjectOverviewMap()},180)}
 function toast(s){$('toast').textContent=s;$('toast').classList.add('show');clearTimeout(toast.timer);toast.timer=setTimeout(()=>$('toast').classList.remove('show'),2600)}
