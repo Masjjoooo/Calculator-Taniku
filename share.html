@@ -30,7 +30,7 @@ footer{text-align:center;color:#89948d;font-size:11px;margin-top:20px}
 </main>
 <script>
 (()=> {
- const content=document.getElementById('content'),token=new URLSearchParams(location.search).get('token')||location.pathname.match(/^\\/s\\/([A-Za-z0-9_-]{16,128})\\/?$/)?.[1];
+ const content=document.getElementById('content'),pathParts=location.pathname.split('/').filter(Boolean),token=new URLSearchParams(location.search).get('token')||(pathParts[0]==='s'?pathParts[1]:null);
  const endpoint='https://gevrnbqksgjlvpqjtmtl.supabase.co/rest/v1/rpc/read_work_project_share',key='sb_publishable_xjMpFAk6N34RvbgpP6IrPA_J5RIFcnF';
  let map=null;
  const esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
