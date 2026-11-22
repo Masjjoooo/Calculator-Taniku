@@ -27,6 +27,15 @@ function installMapUI(){
  #mapAddPoint{background:#176b45;color:#fff;flex:1}
  #mapUndo:disabled,#mapRedo:disabled,#mapAddPoint:disabled{opacity:.38}
  .leaflet-control-attribution{font-size:9px!important}
+ #mapStatus.map-status-error{background:#fee2e2!important;color:#991b1b!important;border:2px solid #dc2626!important;border-left:6px solid #dc2626!important;border-radius:10px!important;padding:12px!important;font-weight:800!important}
+ #mapStatus.map-status-ok{background:#dcfce7!important;color:#166534!important;border:1px solid #16a34a!important;padding:12px!important;border-radius:10px!important;font-weight:700!important}
+ #mapFeedback.map-error-card{display:flex!important;gap:10px!important;align-items:flex-start!important;margin:10px 0 14px!important;padding:13px!important;background:#fff1f2!important;color:#991b1b!important;border:2px solid #ef4444!important;border-left:7px solid #dc2626!important;border-radius:12px!important}
+ #mapFeedback[hidden]{display:none!important}
+ #mapFeedback strong,#mapFeedback p{color:#991b1b!important}
+ #mapPanel .field.map-field-invalid{background:#fff1f2!important;border:2px solid #dc2626!important;border-radius:12px!important;padding:10px!important}
+ #mapPanel .field.map-field-invalid label{color:#b91c1c!important;font-weight:800!important}
+ #mapPanel .field.map-field-invalid select,#mapPanel .field.map-field-invalid input{color:#991b1b!important;background:#fee2e2!important;border:2px solid #dc2626!important;outline:3px solid rgba(220,38,38,.18)!important;box-shadow:0 0 0 3px rgba(220,38,38,.16)!important}
+ #mapPanel .field.map-field-invalid select:focus,#mapPanel .field.map-field-invalid input:focus{border-color:#b91c1c!important;outline:3px solid rgba(220,38,38,.28)!important}
  `;document.head.appendChild(style);
  const status=$('mapStatus');const feedback=document.createElement('div');feedback.id='mapFeedback';feedback.className='map-error-card';feedback.hidden=true;feedback.setAttribute('role','alert');feedback.setAttribute('aria-live','assertive');feedback.innerHTML='<span aria-hidden="true" style="font-size:22px">⚠</span><div><strong>Periksa bagian yang ditandai merah</strong><p id="mapFeedbackText"></p></div>';status.insertAdjacentElement('afterend',feedback);
  ['mapVillage','mapFarmer','mapFieldName'].forEach(id=>{const el=$(id);el?.addEventListener('change',()=>clearInvalid(id));el?.addEventListener('input',()=>clearInvalid(id))});
