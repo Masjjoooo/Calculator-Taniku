@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8"><link rel="manifest" href="/manifest.json"><meta name="mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"><meta name="apple-mobile-web-app-title" content="Calculator Taniku"><link rel="apple-touch-icon" href="/icons/icon.svg"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="theme-color" content="#10251d">
 <title>Kalkulator Kotakan Sawah</title>
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script><link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"><script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script><script src="https://unpkg.com/esri-leaflet@3.0.15/dist/esri-leaflet.js"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script><link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"><script defer src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script><script defer src="https://unpkg.com/esri-leaflet@3.0.15/dist/esri-leaflet.js"></script>
 <style>
 :root{color-scheme:light;--ink:#17251f;--muted:#718078;--line:#e3eae5;--green:#176b45;--green2:#eaf5ee;--bg:#f4f7f4;--white:#fff;--red:#b42318}
 *{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.5 Inter,system-ui,-apple-system,"Segoe UI",sans-serif}.wrap{width:min(900px,100% - 30px);margin:25px auto 45px}
@@ -146,7 +146,7 @@ fetch('https://gevrnbqksgjlvpqjtmtl.supabase.co/rest/v1/rpc/read_work_project_sh
 </script>
 <div id="paymentModal" class="hidden" style="position:fixed;inset:0;background:#10251d88;z-index:50;display:flex;align-items:center;justify-content:center;padding:16px"><section class="panel" style="width:min(520px,100%);max-height:90vh;overflow:auto;margin:0"><div class="history-head"><div><h2 class="section-title" style="margin:0">Konfirmasi uang diterima</h2><div class="hint" id="paymentFarmerLabel">Petani</div></div><button class="secondary" type="button" id="closePayment">Tutup</button></div><div class="project-kpis" style="grid-template-columns:1fr 1fr"><div class="project-kpi"><span>Total tagihan</span><strong id="paymentDue">Rp0</strong></div><div class="project-kpi"><span>Sudah diterima</span><strong id="paymentPaid">Rp0</strong></div><div class="project-kpi"><span>Sisa tagihan</span><strong id="paymentRemaining">Rp0</strong></div><div class="project-kpi"><span>Status saat ini</span><strong id="paymentStatus">Belum dibayar</strong></div></div><div class="field"><label>Nominal uang yang benar-benar diterima (Rp)</label><input id="paymentAmount" inputmode="numeric" placeholder="Contoh: 150000"></div><div class="field"><label>Tanggal penerimaan</label><input id="paymentDate" type="date"></div><div class="field"><label>Catatan / keterangan</label><textarea id="paymentNote" placeholder="Contoh: diterima tunai, pembayaran sebagian, kekurangan dibayar nanti..."></textarea></div><div class="hint" id="paymentPreview">Masukkan nominal untuk melihat sisa tagihan setelah pembayaran.</div><div class="actions"><button class="primary" id="savePayment" type="button">Konfirmasi & simpan pembayaran</button><button class="secondary" id="cancelPayment" type="button">Batal</button></div></section></div><div class="toast" id="toast" role="status"></div>
 <script>
-(() => {
+document.addEventListener('DOMContentLoaded',()=>{
 const SUPABASE_URL='https://gevrnbqksgjlvpqjtmtl.supabase.co';
 const SUPABASE_KEY='sb_publishable_xjMpFAk6N34RvbgpP6IrPA_J5RIFcnF';
 const db=window.supabase.createClient(SUPABASE_URL,SUPABASE_KEY);
@@ -220,8 +220,28 @@ async function toggleProjectStatus(){let p=projects.find(x=>x.id===activeProject
 async function deleteProject(){let p=projects.find(x=>x.id===activeProjectId);if(!p||!confirm('Hapus proyek dan semua pembayaran proyek? Data induk tetap aman.'))return;let {error}=await db.from('work_projects').delete().eq('id',p.id);if(error)return toast(error.message);activeProjectId=null;loadProjects()}
 
 const fmtDate=d=>new Date((d||'')+'T00:00:00').toLocaleDateString('id-ID',{day:'2-digit',month:'short',year:'numeric'});
-async function loadProjects(preferredId=null){const {data,error}=await db.from('work_projects').select('*').order('work_date',{ascending:false});if(error){toast('Gagal memuat proyek: '+error.message);return}projects=data||[];$('projectCount').textContent=projects.length+' proyek';$('projectSelect').innerHTML='<option value="">Pilih proyek pekerjaan</option>'+projects.map(p=>'<option value="'+p.id+'">'+escapeHtml(p.name)+' · '+fmtDate(p.work_date)+'</option>').join('');const id=preferredId||activeProjectId;if(id&&projects.some(p=>p.id===id)){$('projectSelect').value=id;await openProject(id)}else if(!projects.length){activeProjectId=null;$('projectDashboard').classList.add('hidden')}else if(!activeProjectId){$('projectDashboard').classList.add('hidden')}}
-async function openProject(id){activeProjectId=id;const p=projects.find(x=>x.id===id);if(!p)return;$('projectDashboard').classList.remove('hidden');$('projectTitle').textContent=p.name+' · '+fmtDate(p.work_date);$('completeProject').textContent=p.status==='completed'?'Buka kembali':'Tandai selesai';const [ir,pr]=await Promise.all([db.from('work_project_items').select('*').eq('project_id',id).order('created_at',{ascending:true}),db.from('work_project_payments').select('*').eq('project_id',id).order('payment_date',{ascending:true})]);if(ir.error||pr.error){toast((ir.error||pr.error).message);return}activeProjectItems=ir.data||[];activePayments=pr.data||[];renderProject()}
+async function loadProjects(preferredId=null){
+ const {data,error}=await db.from('work_projects').select('*').order('work_date',{ascending:false});
+ if(error){toast('Gagal memuat daftar pekerjaan: '+error.message);return}
+ projects=data||[];$('projectCount').textContent=projects.length+' pekerjaan';
+ $('projectSelect').innerHTML='<option value="">Pilih pekerjaan</option>'+projects.map(p=>'<option value="'+p.id+'">'+escapeHtml(villages.find(v=>v.id===p.village_id)?.name||'Desa belum dipilih')+' · '+escapeHtml(p.name)+' · '+fmtDate(p.work_date)+'</option>').join('');
+ const id=preferredId||activeProjectId;
+ if(id&&projects.some(p=>p.id===id)){$('projectSelect').value=id;await openProject(id)}
+ else if(!activeProjectId){$('projectDashboard').classList.add('hidden');$('projectShareList').innerHTML='<div class="empty">Pilih pekerjaan untuk melihat riwayat link.</div>'}
+}
+async function openProject(id){
+ const p=projects.find(x=>x.id===id);if(!p)return;
+ activeProjectId=id;$('projectDashboard').classList.remove('hidden');
+ $('projectTitle').textContent=(villages.find(v=>v.id===p.village_id)?.name||'Desa belum dipilih')+' · '+p.name+' · '+fmtDate(p.work_date);
+ $('completeProject').textContent=p.status==='completed'?'Buka kembali':'Tandai selesai';
+ const [ir,pr]=await Promise.all([
+  db.from('work_project_items').select('*').eq('project_id',id).order('created_at',{ascending:true}),
+  db.from('work_project_payments').select('*').eq('project_id',id).order('payment_date',{ascending:true})
+ ]);
+ if(ir.error||pr.error){toast('Gagal memuat rincian pekerjaan: '+(ir.error||pr.error).message);return}
+ activeProjectItems=ir.data||[];activePayments=pr.data||[];
+ renderProject();await loadProjectShares();setTimeout(()=>{initProjectOverviewMap();initLiveFieldMaps()},180);
+}
 function paymentsFor(item){return activePayments.filter(p=>p.project_item_id===item.id)}
 function paidFor(item){const direct=paymentsFor(item).reduce((s,p)=>s+Number(p.amount_received),0);if(!item.farmer_id)return direct;const siblings=activeProjectItems.filter(x=>x.farmer_id===item.farmer_id&&x.is_active),unallocated=activePayments.filter(p=>!p.project_item_id&&p.farmer_id===item.farmer_id).reduce((s,p)=>s+Number(p.amount_received),0),due=siblings.reduce((s,x)=>s+Number(x.expected_amount||0),0);if(!unallocated||!due)return direct;let remainder=unallocated;for(let i=0;i<siblings.length;i++){const x=siblings[i],share=i===siblings.length-1?remainder:Math.floor(unallocated*Number(x.expected_amount||0)/due);remainder-=share;if(x.id===item.id)return direct+share}return direct}
 function fieldPolygonPreview(field){const ring=field?.boundary_geojson?.coordinates?.[0];if(!Array.isArray(ring)||ring.length<4)return '<div class="field-map-empty">Belum ada batas polygon tersimpan</div>';const pts=ring.slice(0,-1).map(c=>[Number(c[0]),Number(c[1])]).filter(p=>Number.isFinite(p[0])&&Number.isFinite(p[1]));if(pts.length<3)return '<div class="field-map-empty">Batas polygon tidak valid</div>';const xs=pts.map(p=>p[0]),ys=pts.map(p=>p[1]),minX=Math.min(...xs),maxX=Math.max(...xs),minY=Math.min(...ys),maxY=Math.max(...ys),w=Math.max(maxX-minX,1e-9),h=Math.max(maxY-minY,1e-9),xy=pts.map(p=>(8+(p[0]-minX)/w*144).toFixed(1)+','+(8+(maxY-p[1])/h*84).toFixed(1)).join(' ');return '<svg class="field-mini-map" viewBox="0 0 160 100" role="img" aria-label="Batas petak '+escapeHtml(field.name)+'"><polygon points="'+xy+'" fill="#8b4c55" fill-opacity=".62" stroke="#fff" stroke-width="3" stroke-linejoin="round"/></svg><span class="field-area-pill">'+number(field.area_m2)+' m²</span>'}
@@ -232,7 +252,42 @@ let paymentTargetFarmer=null,paymentTargetItem=null;function openPaymentModal(it
 function closePaymentModal(){$('paymentModal').classList.add('hidden');paymentTargetFarmer=null;paymentTargetItem=null}
 async function savePayment(){if(!paymentTargetItem)return;const amount=Number($('paymentAmount').value.replace(/[^0-9]/g,'')),date=$('paymentDate').value,note=$('paymentNote').value.trim();if(!Number.isSafeInteger(amount)||amount<=0)return toast('Nominal uang diterima harus lebih dari Rp0.');if(!date)return toast('Tanggal penerimaan wajib diisi.');const item=activeProjectItems.find(x=>x.id===paymentTargetItem);if(!item)return toast('Petak pekerjaan tidak ditemukan.');const payload={owner_id:user.id,project_id:activeProjectId,farmer_id:paymentTargetFarmer,project_item_id:paymentTargetFarmer?null:paymentTargetItem,amount_received:amount,payment_date:date,notes:note};$('savePayment').disabled=true;$('savePayment').textContent='Menyimpan…';try{const {error}=await db.from('work_project_payments').insert(payload);if(error)throw error;toast('Pembayaran berhasil dicatat sebagai satu transaksi. Status dan sisa tagihan diperbarui.');closePaymentModal();await openProject(activeProjectId)}catch(e){toast('Gagal menyimpan pembayaran: '+e.message)}finally{$('savePayment').disabled=false;$('savePayment').textContent='Konfirmasi & simpan pembayaran'}}
 function showPayments(itemId){const item=activeProjectItems.find(x=>x.id===itemId);if(!item)return;const rows=activePayments.filter(p=>p.farmer_id&&p.farmer_id===item.farmer_id||p.project_item_id===itemId);if(!rows.length){toast('Belum ada transaksi pembayaran untuk petani ini.');return}const total=rows.reduce((s,p)=>s+Number(p.amount_received),0);alert('RIWAYAT PEMBAYARAN · '+item.farmer_name+'\n\n'+rows.map(p=>fmtDate(p.payment_date)+' — '+rupiah(p.amount_received)+(p.notes?' · '+p.notes:'')).join('\n')+'\n\nTotal diterima: '+rupiah(total))}
-async function createProject(){let village_id=$('projectVillage').value,name=$('projectName').value.trim();if(!village_id)return toast('Pilih desa terlebih dahulu sebelum membuat pekerjaan.');if(!name)return toast('Isi nama pekerjaan.');const payload={owner_id:user.id,village_id,name,work_date:$('projectDate').value||new Date().toISOString().slice(0,10),notes:$('projectNotes').value.trim()};const {data,error}=await db.from('work_projects').insert(payload).select().single();if(error)return toast('Gagal membuat pekerjaan: '+error.message);$('projectName').value='';$('projectNotes').value='';toast('Pekerjaan berhasil dibuat untuk '+(villages.find(v=>v.id===village_id)?.name||'desa terpilih')+'.');setActiveSection('projectsPanel');await loadProjects(data.id);await loadDashboard()}
+async function createProject(){
+ const village_id=$('projectVillage').value,name=$('projectName').value.trim();
+ const selected=[...bulkSelection].filter(id=>masterFields.some(x=>x.id===id&&x.village_id===village_id&&x.owner_id===user.id));
+ if(!village_id)return toast('Pilih desa terlebih dahulu sebelum membuat pekerjaan.');
+ if(!name)return toast('Isi nama pekerjaan.');
+ if(!selected.length)return toast('Centang minimal satu sawah milik petani di desa yang dipilih.');
+ const rows=masterFields.filter(x=>selected.includes(x.id));
+ if(rows.some(x=>!x.farmer_id||!Number.isFinite(Number(x.area_m2))||Number(x.area_m2)<=0))return toast('Ada sawah yang belum memiliki petani atau luas valid. Periksa Data Sawah terlebih dahulu.');
+ const btn=$('createProject');btn.disabled=true;const oldText=btn.textContent;btn.textContent='Menyimpan pekerjaan…';
+ let projectId=null;
+ try{
+  const {data,error}=await db.from('work_projects').insert({
+   owner_id:user.id,village_id,name,
+   work_date:$('projectDate').value||new Date().toISOString().slice(0,10),
+   notes:$('projectNotes').value.trim()
+  }).select().single();
+  if(error)throw error;projectId=data.id;
+  const unit=Math.max(.01,Number($('unitArea').value)||1400),rate=Math.max(0,Number($('rate').value)||200000);
+  const payload=rows.map(x=>{
+   const farmer=farmers.find(a=>a.id===x.farmer_id),area=Number(x.area_m2),boxes=area/unit;
+   return {owner_id:user.id,project_id:projectId,village_id:x.village_id,farmer_id:x.farmer_id,field_id:x.id,
+    farmer_name:farmer?.name||'Petani',field_name:x.name,area_m2:area,kotak_exact:boxes,
+    area_per_kotak_m2:unit,tariff_per_kotak:Math.round(rate),expected_amount:Math.round(boxes*rate),is_active:true};
+  });
+  const inserted=await db.from('work_project_items').insert(payload);
+  if(inserted.error){
+   await db.from('work_projects').delete().eq('id',projectId).eq('owner_id',user.id);
+   projectId=null;throw new Error('Sawah tidak berhasil disimpan ke pekerjaan. '+inserted.error.message);
+  }
+  bulkSelection.clear();$('projectName').value='';$('projectNotes').value='';$('createFieldSearch').value='';$('createFarmerFilter').value='';
+  $('createFieldChoices').innerHTML='<div class="empty">Pilih desa pekerjaan untuk melihat sawah petani.</div>';$('createFieldCount').textContent='0 sawah dipilih';
+  toast('Pekerjaan berhasil dibuat. '+rows.length+' sawah dan luasnya sudah tersimpan.');
+  setActiveSection('projectsPanel');await loadProjects(projectId);await loadDashboard();
+ }catch(e){toast('Gagal membuat pekerjaan: '+(e.message||'Kesalahan tidak diketahui'))}
+ finally{btn.disabled=false;btn.textContent=oldText||'+ Buat pekerjaan'}
+}
 async function toggleProjectStatus(){const p=projects.find(x=>x.id===activeProjectId);if(!p)return;const status=p.status==='completed'?'active':'completed';const {error}=await db.from('work_projects').update({status,updated_at:new Date().toISOString()}).eq('id',p.id);if(error){toast(error.message);return}toast(status==='completed'?'Proyek ditandai selesai.':'Proyek dibuka kembali.');await loadProjects(p.id)}
 async function deleteProject(){const p=projects.find(x=>x.id===activeProjectId);if(!p||!confirm('Hapus proyek '+p.name+' beserta daftar sawah dan transaksi pembayarannya? Riwayat kalkulator asli tetap aman.'))return;const {error}=await db.from('work_projects').delete().eq('id',p.id);if(error){toast(error.message);return}activeProjectId=null;toast('Proyek dihapus.');await loadProjects()}
 async function removeProjectItem(id){if(!confirm('Keluarkan sawah ini dari proyek beserta transaksi pembayaran proyeknya? Riwayat kalkulator asli tidak dihapus.'))return;const {error}=await db.from('work_project_items').delete().eq('id',id);if(error){toast(error.message);return}toast('Sawah dikeluarkan dari proyek.');await openProject(activeProjectId)}
@@ -265,5 +320,5 @@ document.querySelectorAll('[data-open-auth]').forEach(b=>b.addEventListener('cli
 $('installApp').addEventListener('click',installTaniku);$('heroInstall').addEventListener('click',()=>{installTaniku();$('downloadApp').scrollIntoView({behavior:'smooth',block:'center'})});
 if(projectShareToken){/* Ditangani renderer publik mandiri di atas. */}else if(shareToken){showShared(shareToken)}else{db.auth.getSession().then(({data,error})=>{if(error)console.warn('Sesi belum dapat dibaca:',error);if(data?.session){user=data.session.user;showApp()}else showLanding()}).catch(e=>{console.error(e);showLanding()})}
 db.auth.onAuthStateChange((_event,session)=>{user=session?.user||null;if(projectShareToken||shareToken)return;if(user)showApp();else showLanding()});
-})();
-</script><script src="/map.js"></script></body></html>
+});
+</script><script defer src="/map.js"></script></body></html>
