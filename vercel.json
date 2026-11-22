@@ -1,0 +1,9 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "rewrites": [
+    {
+      "source": "/s/:token",
+      "destination": "/?project_share=:token"
+    }
+  ]
+}
