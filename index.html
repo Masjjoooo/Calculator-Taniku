@@ -215,7 +215,7 @@ window.addEventListener('beforeinstallprompt',e=>{e.preventDefault();deferredIns
 window.addEventListener('appinstalled',()=>{deferredInstallPrompt=null;toast('Calculator-Taniku berhasil dipasang.')});
 async function installTaniku(){if(deferredInstallPrompt){deferredInstallPrompt.prompt();const choice=await deferredInstallPrompt.userChoice;deferredInstallPrompt=null;if(choice?.outcome==='accepted')toast('Aplikasi sedang dipasang.');return}const help=$('installHelp');help.style.display='block';help.innerHTML=' <b>Android:</b> buka menu ⋮ di Chrome, lalu pilih <b>Instal aplikasi</b> atau <b>Tambahkan ke layar utama</b>.<br><b>iPhone/iPad:</b> buka lewat Safari, tekan tombol Bagikan, lalu pilih <b>Add to Home Screen</b>.';help.scrollIntoView({behavior:'smooth',block:'nearest'})}
 document.querySelectorAll('[data-open-auth]').forEach(b=>b.addEventListener('click',()=>showAuth(b.dataset.openAuth)));
-$('installApp').addEventListener('click',installTanuki);$('heroInstall').addEventListener('click',()=>{installTanuki();$('downloadApp').scrollIntoView({behavior:'smooth',block:'center'})});
+$('installApp').addEventListener('click',installTaniku);$('heroInstall').addEventListener('click',()=>{installTaniku();$('downloadApp').scrollIntoView({behavior:'smooth',block:'center'})});
 db.auth.getSession().then(({data})=>{if(data.session){user=data.session.user;showApp()}else showLanding()});db.auth.onAuthStateChange((_event,session)=>{user=session?.user||null;if(user)showApp();else if(!shareToken)showLanding()});
 })();
 </script><script src="/map.js"></script></body></html>
