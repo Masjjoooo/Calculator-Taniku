@@ -3,7 +3,7 @@
   "rewrites": [
     {
       "source": "/s/:token",
-      "destination": "/?project_share=:token"
+      "destination": "/share.html?token=:token"
     }
   ]
 }
